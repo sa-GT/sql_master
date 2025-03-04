@@ -1,0 +1,264 @@
+CREATE TABLE Teachers (
+    TeacherID INT PRIMARY KEY IDENTITY,
+    FullName NVARCHAR(100) NOT NULL,
+    Email NVARCHAR(100) UNIQUE NOT NULL,
+    PasswordHash NVARCHAR(255) NOT NULL,
+    ProfilePicture NVARCHAR(255),
+    Bio TEXT, -- What subjects they specialize in
+    CreatedAt DATETIME DEFAULT GETDATE()
+);
+
+CREATE TABLE Students (
+    StudentID INT PRIMARY KEY IDENTITY,
+    FullName NVARCHAR(100) NOT NULL,
+    Email NVARCHAR(100) UNIQUE NOT NULL,
+    PasswordHash NVARCHAR(255) NOT NULL,
+    ProfilePicture NVARCHAR(255),
+    Interests TEXT, -- Subjects they are interested in
+    CreatedAt DATETIME DEFAULT GETDATE()
+);
+
+CREATE TABLE Courses (
+    CourseID INT PRIMARY KEY IDENTITY,
+    Title NVARCHAR(200) NOT NULL,
+    Description TEXT,
+    TeacherID INT FOREIGN KEY REFERENCES Teachers(TeacherID) ON DELETE CASCADE,
+    Category NVARCHAR(100),
+    Level NVARCHAR(50) CHECK (Level IN ('Beginner', 'Intermediate', 'Advanced')),
+    Price DECIMAL(10,2) DEFAULT 0.00, -- Free or Paid Courses
+    CreatedAt DATETIME DEFAULT GETDATE()
+);
+
+CREATE TABLE Enrollment_user (
+    EnrollmentID INT PRIMARY KEY IDENTITY,
+    StudentID INT FOREIGN KEY REFERENCES Students(StudentID) ON DELETE CASCADE,
+    CourseID INT FOREIGN KEY REFERENCES Courses(CourseID) ON DELETE CASCADE,
+    EnrolledAt DATETIME DEFAULT GETDATE()
+);
+-- info about courses 
+CREATE TABLE Lessons (
+    LessonID INT PRIMARY KEY IDENTITY,
+    CourseID INT FOREIGN KEY REFERENCES Courses(CourseID),
+    Title NVARCHAR(255),
+    Description TEXT,
+    VideoLink NVARCHAR(255),
+    ArticleContent TEXT,
+    QuizID INT FOREIGN KEY REFERENCES Quizzes(QuizID), -- Optional
+    CreatedAt DATETIME DEFAULT GETDATE()
+);
+
+
+CREATE TABLE Roadmap (
+    RoadmapID INT PRIMARY KEY IDENTITY,
+    CourseID INT FOREIGN KEY REFERENCES Courses(CourseID),
+    StepNumber INT NOT NULL,
+    StepTitle NVARCHAR(255) NOT NULL,
+    StepDescription TEXT,
+    StepType NVARCHAR(50) CHECK (StepType IN ('Video', 'Article', 'Quiz', 'Project')),
+    ContentLink NVARCHAR(255), -- Link to video, article, or quiz
+    CreatedAt DATETIME DEFAULT GETDATE()
+);
+
+
+
+CREATE TABLE Posts (
+    PostID INT PRIMARY KEY IDENTITY,
+    UserID INT FOREIGN KEY REFERENCES Students(StudentID),
+    CourseID INT NULL FOREIGN KEY REFERENCES Courses(CourseID), -- Nullable for general posts
+	TeacherID int Foreign key references Teachers(TeacherID),
+    Title NVARCHAR(255),
+    Content TEXT,
+    CreatedAt DATETIME DEFAULT GETDATE()
+);
+
+CREATE TABLE Comments (
+    CommentID INT PRIMARY KEY IDENTITY,
+    PostID INT FOREIGN KEY REFERENCES Posts(PostID),
+    UserID INT FOREIGN KEY REFERENCES Students(StudentID),
+    TeacherID INT FOREIGN KEY REFERENCES Teachers(TeacherID),
+    CommentText TEXT,
+    CreatedAt DATETIME DEFAULT GETDATE()
+);
+
+CREATE TABLE Chat (
+    ChatID INT PRIMARY KEY IDENTITY,
+    SenderID INT FOREIGN KEY REFERENCES Students(StudentID), --sender student 
+    ReceiverID INT FOREIGN KEY REFERENCES Students(StudentID),-- recive student 
+    TeacherID INT FOREIGN KEY REFERENCES Teachers(TeacherID),
+    Receiver_TID INT FOREIGN KEY REFERENCES Teachers(TeacherID),
+    Message TEXT NOT NULL,
+    SentAt DATETIME DEFAULT GETDATE()
+);
+
+CREATE TABLE Quizzes (
+    QuizID INT PRIMARY KEY IDENTITY,
+    CourseID INT FOREIGN KEY REFERENCES Courses(CourseID),
+    Title NVARCHAR(255),
+    CreatedAt DATETIME DEFAULT GETDATE()
+);
+
+
+CREATE TABLE Questions (
+    QuestionID INT PRIMARY KEY IDENTITY,
+    QuizID INT FOREIGN KEY REFERENCES Quizzes(QuizID),
+    QuestionText TEXT NOT NULL,
+    QuestionType NVARCHAR(50)
+);
+
+CREATE TABLE Answers ( -- ask coutch
+    AnswerID INT PRIMARY KEY IDENTITY,
+    QuestionID INT FOREIGN KEY REFERENCES Questions(QuestionID),
+    AnswerText TEXT NOT NULL,
+    IsCorrect BIT NOT NULL -- 1 = Correct, 0 = Incorrect
+);
+
+CREATE TABLE UserProgress ( -- when ask coutch about roadmap create this 
+    ProgressID INT PRIMARY KEY IDENTITY,
+    UserID INT FOREIGN KEY REFERENCES Students(StudentID),
+    RoadmapID INT FOREIGN KEY REFERENCES Roadmap(RoadmapID),
+    IsCompleted BIT DEFAULT 0,
+    CompletedAt DATETIME NULL
+);
+
+CREATE TABLE Categories (
+    CategoryID INT PRIMARY KEY IDENTITY,
+    CategoryName NVARCHAR(100) UNIQUE NOT NULL,
+    Description TEXT NULL
+);
+
+CREATE TABLE Subscriptions (
+    SubscriptionID INT PRIMARY KEY IDENTITY,
+    UserID INT FOREIGN KEY REFERENCES Students(StudentID),
+    PlanName NVARCHAR(100),
+    Price DECIMAL(10,2),
+    StartDate DATETIME DEFAULT GETDATE(),
+    EndDate DATETIME NOT NULL
+);
+
+CREATE TABLE Course_Reviews (
+    ReviewID INT PRIMARY KEY IDENTITY,
+    CourseID INT FOREIGN KEY REFERENCES Courses(CourseID),
+    UserID INT FOREIGN KEY REFERENCES Students(StudentID),
+    Rating INT CHECK (Rating BETWEEN 1 AND 5),
+    ReviewText TEXT,
+    CreatedAt DATETIME DEFAULT GETDATE()
+);
+
+
+
+CREATE TABLE Certificates ( --ask coutch 
+    CertificateID INT PRIMARY KEY IDENTITY,
+    UserID INT FOREIGN KEY REFERENCES Students(StudentID),
+    CourseID INT FOREIGN KEY REFERENCES Courses(CourseID),
+    IssuedAt DATETIME DEFAULT GETDATE(),
+    CertificateURL NVARCHAR(255) -- Link to the certificate
+);
+
+CREATE TABLE Notifications (
+    NotificationID INT PRIMARY KEY IDENTITY,
+    UserID INT FOREIGN KEY REFERENCES Students(StudentID),
+    Message TEXT NOT NULL,
+    IsRead BIT  DEFAULT 0,--bit store true or false value 
+    CreatedAt DATETIME DEFAULT GETDATE()
+);
+
+
+CREATE TABLE Transactions ( -- ask coutch
+    TransactionID INT PRIMARY KEY IDENTITY,
+    UserID INT FOREIGN KEY REFERENCES Users(UserID),
+    CourseID INT FOREIGN KEY REFERENCES Courses(CourseID) NULL, -- Can be NULL for subscriptions
+    Amount DECIMAL(10,2) NOT NULL,
+    PaymentMethod NVARCHAR(50) CHECK (PaymentMethod IN ('Credit Card', 'PayPal', 'Crypto')),
+    Status NVARCHAR(50) CHECK (Status IN ('Pending', 'Completed', 'Failed')),
+    TransactionDate DATETIME DEFAULT GETDATE()
+);
+
+
+CREATE TABLE Live_Classes ( -- ask coutch 
+    LiveClassID INT PRIMARY KEY IDENTITY,
+    CourseID INT FOREIGN KEY REFERENCES Courses(CourseID),
+    TeacherID INT FOREIGN KEY REFERENCES Users(UserID),
+    ScheduledAt DATETIME NOT NULL,
+    MeetingLink NVARCHAR(255) NOT NULL
+);
+
+CREATE TABLE Assignments (
+    AssignmentID INT PRIMARY KEY IDENTITY,
+    CourseID INT FOREIGN KEY REFERENCES Courses(CourseID),
+    Title NVARCHAR(255) NOT NULL,
+    Description TEXT,
+    DueDate DATETIME,
+    MaxScore INT NOT NULL
+);
+
+
+
+CREATE TABLE Assignment_Submissions (
+    SubmissionID INT PRIMARY KEY IDENTITY,
+    AssignmentID INT FOREIGN KEY REFERENCES Assignments(AssignmentID),
+    StudnetsID INT FOREIGN KEY REFERENCES Students(StudentID),
+    SubmissionFile NVARCHAR(255), -- File link
+    SubmittedAt DATETIME DEFAULT GETDATE(),
+    Score INT NULL -- Teacher's grading
+);
+
+CREATE TABLE Instructor_Applications (
+    ApplicationID INT PRIMARY KEY IDENTITY,
+    UserID INT FOREIGN KEY REFERENCES Teachers(TeacherID),
+    Resume NVARCHAR(255), -- Link to resume
+    ExperienceYears INT,
+    Status NVARCHAR(50) CHECK (Status IN ('Pending', 'Approved', 'Rejected')),
+    AppliedAt DATETIME DEFAULT GETDATE()
+);
+
+
+CREATE TABLE Games (
+    GameID INT PRIMARY KEY IDENTITY,
+    Title NVARCHAR(255) NOT NULL,
+    Description TEXT,
+    GameType NVARCHAR(100),
+    CreatedBy INT FOREIGN KEY REFERENCES Students(StudentID),
+    CreatedAt DATETIME DEFAULT GETDATE()
+);
+
+CREATE TABLE Game_Scores ( -- you can add field to know who has hight score
+    ScoreID INT PRIMARY KEY IDENTITY,
+    GameID INT FOREIGN KEY REFERENCES Games(GameID),
+	StudentID INT FOREIGN KEY REFERENCES Students(StudentID),
+    Score INT NOT NULL,
+    AchievedAt DATETIME DEFAULT GETDATE()
+);
+
+CREATE TABLE Events (
+    EventID INT PRIMARY KEY IDENTITY,
+    Title NVARCHAR(255),
+    Description TEXT,
+    EventType NVARCHAR(100),
+    StartDate DATETIME NOT NULL,
+    EndDate DATETIME NOT NULL,
+    Location NVARCHAR(255), -- Can be physical or a link
+    CreatedBy INT FOREIGN KEY REFERENCES Students(StudentID)
+);
+
+
+CREATE TABLE Event_Registrations (
+    RegistrationID INT PRIMARY KEY IDENTITY,
+    EventID INT FOREIGN KEY REFERENCES Events(EventID),
+    StudentID INT FOREIGN KEY REFERENCES Students(StudentID),
+    RegisteredAt DATETIME DEFAULT GETDATE()
+);
+
+
+CREATE TABLE Event_Feedback (
+    FeedbackID INT PRIMARY KEY IDENTITY,
+    EventID INT FOREIGN KEY REFERENCES Events(EventID),
+    StudentID INT FOREIGN KEY REFERENCES Students(StudentID),
+    Rating INT CHECK (Rating BETWEEN 1 AND 5),
+    Comments TEXT,
+    CreatedAt DATETIME DEFAULT GETDATE()
+);
+
+
+
+
+
